@@ -3,6 +3,7 @@
 
 # Secrets (compose + helmfile share this file)
 .env
+.build/
 
 # Nix build outputs
 result

@@ -1,0 +1,69 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Build the Nix-built OpenCloud image and publish it to GHCR.
+#
+# Published image: ghcr.io/tobias-weiss-ai-xr/opencloud:<tag>
+# The image is built from the pinned upstream release binary via
+# nix/images/opencloud/flake.nix (fully reproducible; see the flake.lock).
+name: Build & publish OpenCloud image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "nix/images/opencloud/**"
+      - ".github/workflows/build-image.yml"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Image tag to build and push (must match the version in nix/images/opencloud/flake.nix)
+        required: false
+        default: "9.1.0"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: tobias-weiss-ai-xr/opencloud
+  IMAGE_TAG: "9.1.0"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: determinatesystems/nix-installer-action@main
+
+      - name: Set image tag (workflow_dispatch override)
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "IMAGE_TAG=${{ github.event.inputs.tag }}" >> "$GITHUB_ENV"
+
+      - name: Build image with Nix
+        run: |
+          cd nix/images/opencloud
+          nix build .#opencloud --print-build-logs
+          file result
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load and push image
+        run: |
+          cd nix/images/opencloud
+          docker load < result
+          docker tag "opencloud:${IMAGE_TAG}" "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+          docker tag "opencloud:${IMAGE_TAG}" "${REGISTRY}/${IMAGE_NAME}:latest"
+          docker push "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+          docker push "${REGISTRY}/${IMAGE_NAME}:latest"
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
