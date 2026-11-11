@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# opencloud-nix — Helmfile entry point.
+#
+# Single environment "default": all overrides live in
+# environments/default/values.yaml; secrets are read from the process
+# environment (see releases/opencloud/values.yaml.gotmpl). Run via:
+#   make helmfile-apply      (loads ./.env into the environment first)
+# or manually:
+#   set -a; . ./.env; set +a; helmfile -e default sync
+environments:
+  default:
+    values:
+      - environments/default/values.yaml
+---
+releases:
+  - name: opencloud
+    chart: charts/opencloud
+    namespace: opencloud
+    createNamespace: true
+    wait: true
+    timeout: 900
+    force: false
+    values:
+      - releases/opencloud/values.yaml.gotmpl
+---
+commonLabels:
+  deployStage: "050-components"
+  component: "opencloud"

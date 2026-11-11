@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+suite: ingress
+templates:
+  - ingress.yaml
+release:
+  name: opencloud
+tests:
+  - it: creates an ingress with the configured host, class and TLS
+    values:
+      - ../ci/ci-values.yaml
+    set:
+      ingress.tls:
+        - secretName: cloud-tls
+          hosts:
+            - cloud.example.com
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+      - equal:
+          path: spec.rules[0].host
+          value: cloud.example.com
+      - equal:
+          path: spec.tls[0].secretName
+          value: cloud-tls
+  - it: renders nothing when ingress is disabled
+    set:
+      ingress.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0

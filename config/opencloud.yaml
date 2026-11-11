@@ -1,0 +1,62 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Stub OpenCloud config mounted at /etc/opencloud/opencloud.yaml
+# (OC_CONFIG_DIR=/etc/opencloud in the Nix-built image).
+#
+# OpenCloud runs fine with only this file + env vars. All secret values below
+# are placeholders: OC_* environment variables (from .env / helmfile secrets)
+# override them at runtime (this is the same pattern the helmfile/k8s path
+# uses — see helmfile/charts/opencloud/templates/configmap.yaml).
+#
+# For a real deployment, either overwrite these values in-place or (preferred)
+# keep providing them via OC_* env vars / mounted Secret.
+
+token_manager:
+  jwt_secret: "override-via-env"
+  machine_auth_api_key: "override-via-env"
+  system_user_api_key: "override-via-env"
+  transfer_secret: "override-via-env"
+  url_signing_secret: "override-via-env"
+  system_user_id: "admin"
+
+graph:
+  application:
+    # Change this UUID per deployment (any valid UUID works).
+    id: "fdfc30d2-5cc5-40a4-8beb-ce6801bbca41"
+  events:
+    tls_insecure: true
+  spaces:
+    insecure: true
+  service_account:
+    # Change this UUID per deployment.
+    service_account_id: "dc3eee3e-7831-45e4-b986-8e470f37ac23"
+    service_account_secret: "override-via-env"
+
+proxy:
+  oidc:
+    insecure: true
+  insecure_backends: true
+  service_account:
+    service_account_id: "dc3eee3e-7831-45e4-b986-8e470f37ac23"
+    service_account_secret: "override-via-env"
+
+storage_users:
+  events:
+    tls_insecure: true
+  mount_id: "ca65db73-407e-43ca-b393-9b141f43aa8f"
+  service_account:
+    service_account_id: "dc3eee3e-7831-45e4-b986-8e470f37ac23"
+    service_account_secret: "override-via-env"
+
+gateway:
+  storage_registry:
+    storage_users_mount_id: "ca65db73-407e-43ca-b393-9b141f43aa8f"
+
+settings:
+  service_account_ids:
+    - "dc3eee3e-7831-45e4-b986-8e470f37ac23"
+
+nats:
+  nats:
+    tls_skip_verify_client_cert: true

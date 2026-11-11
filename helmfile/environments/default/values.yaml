@@ -1,0 +1,58 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Environment-wide defaults for the "default" environment.
+# Release values are derived from here (see releases/opencloud/values.yaml.gotmpl),
+# with env-var overrides taking precedence (OPENCLOUD_* in .env).
+global:
+  namespace: opencloud
+  replicaCount: 1
+
+  # Nix-built image (nix build .#opencloud-image; docker load < result;
+  # then push to image.registry and adjust image.registry here).
+  image:
+    registry: ghcr.io/tobias-weiss-ai-xr
+    repository: opencloud
+    tag: 9.1.0
+    pullPolicy: IfNotPresent
+
+  service:
+    port: 9200
+
+  ingress:
+    enabled: true
+    className: nginx
+    # Primary host; OC_URL is derived from it. Override with OPENCLOUD_HOST.
+    host: cloud.example.com
+    annotations: {}
+    tls: []
+    # Example:
+    # tls:
+    #   - secretName: cloud-tls
+    #     hosts:
+    #       - cloud.example.com
+
+  persistence:
+    size: 100Gi
+    accessMode: ReadWriteOnce
+    storageClass: ""
+
+  # External OIDC (Keycloak/Dex/...). Disabled -> internal IDM + basic auth.
+  oidc:
+    enabled: false
+    issuer: ""
+    adminUserId: ""
+    clientSecret: ""
+    excludeRunServices: "idp,idm,auth-basic"
+    accountEditLink: ""
+
+  logLevel: info
+
+  resources:
+    opencloud:
+      requests:
+        cpu: 256m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1Gi

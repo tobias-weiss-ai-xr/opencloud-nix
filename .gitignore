@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# Secrets (compose + helmfile share this file)
+.env
+
+# Nix build outputs
+result
+nix/images/opencloud/result
+
+# Helm / helmfile artifacts
+*.tgz
+helmfile/lock.yaml
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# direnv
+.direnv/

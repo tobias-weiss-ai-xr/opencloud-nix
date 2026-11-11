@@ -1,0 +1,19 @@
+Thank you for installing {{ .Chart.Name }} (v{{ .Chart.AppVersion }})!
+
+Your release is named {{ .Release.Name }} (namespace {{ .Release.Namespace }}).
+
+To access the service:
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  kubectl port-forward --namespace {{ .Release.Namespace }} $POD_NAME {{ .Values.service.port }}:{{ .Values.service.port }}
+
+Next steps:
+  1. If oidc.enabled=false (default): log in with the built-in identity
+     management (IDM) over basic auth (admin password was set during
+     `opencloud init`, e.g. via a Job/init step in your environment).
+  2. Enable external OIDC (Keycloak/Dex/...) by setting oidc.enabled=true
+     plus issuer/clientId/clientSecret and optional graph.ldap.
+  3. Pin stable secrets (jwtSecret, transferSecret, machineAuthApiKey,
+     systemUserApiKey, urlSigningSecret) before scaling replicas.
+
+Bundled Nix image: build with `nix build .#opencloud-image` and point
+image.registry/repository/tag at your registry.

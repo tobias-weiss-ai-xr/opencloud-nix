@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# opencloud-nix — Docker Compose deployment of the Nix-built OpenCloud image.
+#
+# Prerequisites:
+#   1. Build the image with Nix and load it into docker:
+#        nix build .#opencloud-image        (or: make image)
+#        docker load < result               (or: make image-load)
+#      Default image: opencloud:9.1.0  (override with OPENCLOUD_IMAGE in .env)
+#   2. Create .env with secrets:
+#        make compose-setup
+#   3. Start:
+#        make compose-up     (-> http://localhost:9200)
+#
+# Configuration model (same as the helmfile/k8s path):
+#   * config/opencloud.yaml  -> /etc/opencloud/opencloud.yaml  (stub values)
+#   * OC_* environment from .env (secrets) overrides the yaml at runtime.
+services:
+  opencloud:
+    image: ${OPENCLOUD_IMAGE:-opencloud:9.1.0}
+    restart: unless-stopped
+    # The Nix image runs as user 1000; keep it explicit here too.
+    user: "1000:1000"
+    init: true
+    ports:
+      - "${OPENCLOUD_PORT:-9200}:9200"
+    environment:
+      # Demo-friendly defaults; make sure to disable these in real deployments.
+      OC_INSECURE: "true"
+      OC_URL: ${OPENCLOUD_URL:-http://localhost:9200}
+      OC_LOG_LEVEL: ${OPENCLOUD_LOG_LEVEL:-info}
+      PROXY_TLS: "false"
+      PROXY_HTTP_ADDR: "0.0.0.0:9200"
+      IDM_CREATE_DEMO_USERS: ${IDM_CREATE_DEMO_USERS:-true}
+      PROXY_ENABLE_BASIC_AUTH: ${PROXY_ENABLE_BASIC_AUTH:-true}
+
+      # Identity / admin
+      OC_ADMIN_USER_ID: ${OPENCLOUD_ADMIN_USER_ID:-admin}
+      OC_SYSTEM_USER_ID: ${OPENCLOUD_SYSTEM_USER_ID:-admin}
+      OC_SYSTEM_USER_IDP: "internal"
+
+      # Secrets — required. Generate with `make compose-setup` or:
+      #   openssl rand -hex 32
+      OC_JWT_SECRET: ${OPENCLOUD_JWT_SECRET:?set OPENCLOUD_JWT_SECRET in .env (make compose-setup)}
+      OC_TRANSFER_SECRET: ${OPENCLOUD_TRANSFER_SECRET:?set OPENCLOUD_TRANSFER_SECRET in .env (make compose-setup)}
+      OC_MACHINE_AUTH_API_KEY: ${OPENCLOUD_MACHINE_AUTH_API_KEY:?set OPENCLOUD_MACHINE_AUTH_API_KEY in .env (make compose-setup)}
+      OC_SYSTEM_USER_API_KEY: ${OPENCLOUD_SYSTEM_USER_API_KEY:?set OPENCLOUD_SYSTEM_USER_API_KEY in .env (make compose-setup)}
+      OC_URL_SIGNING_SECRET: ${OPENCLOUD_URL_SIGNING_SECRET:?set OPENCLOUD_URL_SIGNING_SECRET in .env (make compose-setup)}
+    volumes:
+      # Persistent OpenCloud data (all services, users, files).
+      - opencloud-data:/var/lib/opencloud
+      # Config discovery (OC_CONFIG_DIR=/etc/opencloud in the image).
+      - ./config:/etc/opencloud:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9200/status.php"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  opencloud-data:

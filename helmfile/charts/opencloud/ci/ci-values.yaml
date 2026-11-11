@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# CI values for `helm template`/`helm lint --values` validation and
+# helm-unittest (valid, non-production placeholders).
+replicaCount: 1
+
+image:
+  registry: registry.example.com
+  repository: opencloud
+  tag: 9.1.0
+  pullPolicy: IfNotPresent
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  hosts:
+    - host: cloud.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+persistence:
+  enabled: true
+  size: 10Gi
+  accessMode: ReadWriteOnce
+  storageClass: ""
+
+oidc:
+  enabled: false
+
+jwtSecret: ci-jwt
+transferSecret: ci-transfer
+machineAuthApiKey: ci-machine
+systemUserApiKey: ci-system
+urlSigningSecret: ci-url
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

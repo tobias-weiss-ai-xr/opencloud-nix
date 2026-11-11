@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+# Patterns to ignore when building a Helm package.
+# NOTE: helm's pattern matcher does not support `**` — avoid it.
+.git
+.gitignore
+.helmignore
+.idea
+.vscode
+*.tmproj
+*.tgz
+result
+tests
+ci

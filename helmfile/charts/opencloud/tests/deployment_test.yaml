@@ -1,0 +1,73 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+suite: deployment
+templates:
+  - deployment.yaml
+release:
+  name: opencloud
+tests:
+  - it: creates a Deployment with the configured image and port
+    values:
+      - ../ci/ci-values.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: spec.replicas
+          value: 1
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: "registry.example.com/opencloud:9.1.0"
+      - equal:
+          path: spec.template.spec.containers[0].ports[0].containerPort
+          value: 9200
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OC_URL")].value
+          value: "https://cloud.example.com"
+  - it: runs as non-root with hardened security context (default values)
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 1000
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 1000
+  - it: wires all five secrets from the Secret object
+    asserts:
+      - exists:
+          path: spec.template.spec.containers[0].env[?(@.name=="OC_JWT_SECRET")]
+      - exists:
+          path: spec.template.spec.containers[0].env[?(@.name=="OC_TRANSFER_SECRET")]
+      - exists:
+          path: spec.template.spec.containers[0].env[?(@.name=="OC_MACHINE_AUTH_API_KEY")]
+      - exists:
+          path: spec.template.spec.containers[0].env[?(@.name=="OC_SYSTEM_USER_API_KEY")]
+      - exists:
+          path: spec.template.spec.containers[0].env[?(@.name=="OC_URL_SIGNING_SECRET")]
+  - it: enables basic auth when oidc is disabled (default)
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="PROXY_ENABLE_BASIC_AUTH")].value
+          value: "true"
+  - it: does not enable basic auth when oidc is enabled
+    values:
+      - ../ci/ci-values.yaml
+    set:
+      oidc.enabled: true
+      oidc.issuer: https://id.example.com/realms/main
+      oidc.clientId: opencloud
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].env[?(@.name=="PROXY_ENABLE_BASIC_AUTH")]
+      - equal:
+          path: spec.template.spec.containers[0].env[?(@.name=="OC_OIDC_ISSUER")].value
+          value: "https://id.example.com/realms/main"
+  - it: mounts data PVC and config map
+    asserts:
+      - exists:
+          path: spec.template.spec.volumes[?(@.name=="opencloud-data")]
+      - exists:
+          path: spec.template.spec.volumes[?(@.name=="opencloud-config")]

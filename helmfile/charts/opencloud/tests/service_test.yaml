@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+suite: service
+templates:
+  - service.yaml
+release:
+  name: opencloud
+tests:
+  - it: creates a ClusterIP Service on port 9200
+    values:
+      - ../ci/ci-values.yaml
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: spec.type
+          value: ClusterIP
+      - equal:
+          path: spec.ports[0].port
+          value: 9200
+      - equal:
+          path: spec.ports[0].targetPort
+          value: http
+      - equal:
+          path: spec.selector["app.kubernetes.io/name"]
+          value: opencloud

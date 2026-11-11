@@ -1,0 +1,205 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "opencloud.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "opencloud.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "opencloud.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "opencloud.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "opencloud.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: PROXY_TLS
+              value: "false"
+            - name: PROXY_HTTP_ADDR
+              value: {{ printf "0.0.0.0:%d" (int .Values.service.port) | quote }}
+            - name: OC_INSECURE
+              value: "true"
+            - name: OC_LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: OC_URL
+              value: {{ printf "https://%s" (include "opencloud.ingressHost" .) | quote }}
+            - name: OC_SYSTEM_USER_ID
+              value: {{ .Values.systemUserId | quote }}
+            - name: OC_SYSTEM_USER_IDP
+              value: "internal"
+            {{- if .Values.oidc.enabled }}
+            - name: OC_OIDC_ISSUER
+              value: {{ .Values.oidc.internalIssuer | default .Values.oidc.issuer | quote }}
+            - name: PROXY_AUTOPROVISION_ACCOUNTS
+              value: {{ .Values.oidc.autoProvisionAccounts | quote }}
+            - name: PROXY_ROLE_ASSIGNMENT_DRIVER
+              value: {{ .Values.oidc.roleAssignmentDriver | quote }}
+            - name: PROXY_OIDC_REWRITE_WELLKNOWN
+              value: {{ .Values.oidc.rewriteWellknown | quote }}
+            - name: PROXY_USER_OIDC_CLAIM
+              value: {{ .Values.oidc.userOidcClaim | quote }}
+            - name: PROXY_USER_CS3_CLAIM
+              value: {{ .Values.oidc.userCs3Claim | quote }}
+            - name: PROXY_AUTOPROVISION_CLAIM_USERNAME
+              value: {{ .Values.oidc.autoProvisionClaimUsername | quote }}
+            - name: OC_ADMIN_USER_ID
+              value: {{ .Values.oidc.adminUserId | quote }}
+            - name: SETTINGS_SETUP_DEFAULT_ASSIGNMENTS
+              value: {{ .Values.oidc.defaultAssignments | quote }}
+            - name: GRAPH_ASSIGN_DEFAULT_USER_ROLE
+              value: {{ .Values.oidc.assignDefaultUserRole | quote }}
+            - name: GRAPH_USERNAME_MATCH
+              value: {{ .Values.oidc.usernameMatch | quote }}
+            - name: OC_EXCLUDE_RUN_SERVICES
+              value: {{ .Values.oidc.excludeRunServices | quote }}
+            {{- if .Values.oidc.accountEditLink }}
+            - name: WEB_OPTION_ACCOUNT_EDIT_LINK_HREF
+              value: {{ .Values.oidc.accountEditLink | quote }}
+            {{- end }}
+            - name: PROXY_OIDC_CLIENT_ID
+              value: {{ .Values.oidc.clientId | quote }}
+            - name: PROXY_OIDC_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "opencloud.fullname" . }}-secrets
+                  key: oc-oidc-client-secret
+            {{- else }}
+            # Internal identity management + basic-auth login (demo-friendly).
+            - name: PROXY_ENABLE_BASIC_AUTH
+              value: "true"
+            {{- end }}
+            - name: OC_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "opencloud.fullname" . }}-secrets
+                  key: oc-jwt-secret
+            - name: OC_TRANSFER_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "opencloud.fullname" . }}-secrets
+                  key: oc-transfer-secret
+            - name: OC_MACHINE_AUTH_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "opencloud.fullname" . }}-secrets
+                  key: oc-machine-auth-api-key
+            - name: OC_SYSTEM_USER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "opencloud.fullname" . }}-secrets
+                  key: oc-system-user-api-key
+            - name: OC_URL_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "opencloud.fullname" . }}-secrets
+                  key: oc-url-signing-secret
+            {{- if .Values.notifications.smtp.host }}
+            - name: NOTIFICATIONS_SMTP_HOST
+              value: {{ .Values.notifications.smtp.host | quote }}
+            - name: NOTIFICATIONS_SMTP_PORT
+              value: {{ .Values.notifications.smtp.port | quote }}
+            - name: NOTIFICATIONS_SMTP_SENDER
+              value: {{ .Values.notifications.smtp.sender | quote }}
+            {{- if .Values.notifications.smtp.username }}
+            - name: NOTIFICATIONS_SMTP_USERNAME
+              value: {{ .Values.notifications.smtp.username | quote }}
+            - name: NOTIFICATIONS_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "opencloud.fullname" . }}-secrets
+                  key: notifications-smtp-password
+            {{- end }}
+            {{- end }}
+            - name: PROXY_CSP_CONFIG_FILE_OVERRIDE_LOCATION
+              value: "/etc/opencloud/csp.yaml"
+          volumeMounts:
+            - name: opencloud-data
+              mountPath: /var/lib/opencloud
+            {{- if .Values.config.enabled }}
+            - name: opencloud-config
+              mountPath: /etc/opencloud
+              readOnly: true
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /status.php
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /status.php
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: opencloud-data
+          persistentVolumeClaim:
+            claimName: {{ include "opencloud.fullname" . }}-data
+        {{- if .Values.config.enabled }}
+        - name: opencloud-config
+          configMap:
+            name: {{ include "opencloud.fullname" . }}-config
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if gt (int .Values.replicaCount) 1 }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - {{ include "opencloud.name" . }}
+                topologyKey: kubernetes.io/hostname
+      {{- else }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

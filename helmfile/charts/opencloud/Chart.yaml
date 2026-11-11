@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+apiVersion: v2
+name: opencloud
+description: A Helm chart for OpenCloud file sync & share (ownCloud Infinite Scale successor)
+type: application
+version: 0.1.0
+appVersion: "9.1.0"
+kubeVersion: ">=1.26.0-0"
+home: https://opencloud.eu
+sources:
+  - https://github.com/opencloud-eu/opencloud
+maintainers:
+  - name: opencloud-nix maintainers
+    email: dev@example.com
+annotations:
+  artifacthub.io/changes: |
+    - Refactored from a larger internal deployment repo (genericized defaults)
+  artifacthub.io/links: |
+    - name: OpenCloud
+      url: https://opencloud.eu
+    - name: Source
+      url: https://github.com/example/opencloud-nix

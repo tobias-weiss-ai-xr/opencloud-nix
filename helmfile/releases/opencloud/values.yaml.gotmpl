@@ -1,0 +1,85 @@
+{{- $root := . }}
+# SPDX-FileCopyrightText: 2026 opencloud-nix Contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Chart values for the opencloud release, built from the `default` environment
+# values merged with process-environment overrides (OPENCLOUD_*).
+#
+# Secrets are deliberately NOT emitted when the corresponding env var is unset
+# — the chart then generates a random value once per install. For stable
+# upgrades / multi-replica deployments, export them (see .env.example):
+#   OPENCLOUD_JWT_SECRET OPENCLOUD_TRANSFER_SECRET OPENCLOUD_MACHINE_AUTH_API_KEY
+#   OPENCLOUD_SYSTEM_USER_API_KEY OPENCLOUD_URL_SIGNING_SECRET
+
+replicaCount: {{ .Values.global.replicaCount | default 1 }}
+
+image:
+  registry: {{ .Values.global.image.registry }}
+  repository: {{ .Values.global.image.repository }}
+  tag: {{ .Values.global.image.tag }}
+  pullPolicy: {{ .Values.global.image.pullPolicy | default "IfNotPresent" }}
+
+service:
+  port: {{ .Values.global.service.port | default 9200 }}
+
+ingress:
+  enabled: {{ .Values.global.ingress.enabled | default true }}
+  className: {{ .Values.global.ingress.className | default "nginx" | quote }}
+  annotations:
+    {{- toYaml (.Values.global.ingress.annotations | default dict) | nindent 4 }}
+  hosts:
+    - host: {{ env "OPENCLOUD_HOST" | default .Values.global.ingress.host }}
+      paths:
+        - path: /
+          pathType: Prefix
+  {{- with .Values.global.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+
+persistence:
+  enabled: true
+  size: {{ .Values.global.persistence.size | default "100Gi" | quote }}
+  accessMode: {{ .Values.global.persistence.accessMode | default "ReadWriteOnce" | quote }}
+  storageClass: {{ .Values.global.persistence.storageClass | default "" | quote }}
+  annotations: {}
+
+oidc:
+  enabled: {{ .Values.global.oidc.enabled | default false }}
+  issuer: {{ env "OPENCLOUD_OIDC_ISSUER" | default .Values.global.oidc.issuer | default "" | quote }}
+  clientId: {{ env "OPENCLOUD_OIDC_CLIENT_ID" | default "" | quote }}
+  adminUserId: {{ env "OPENCLOUD_ADMIN_USER_ID" | default .Values.global.oidc.adminUserId | default "" | quote }}
+  excludeRunServices: {{ .Values.global.oidc.excludeRunServices | default "idp,idm,auth-basic" | quote }}
+  accountEditLink: {{ .Values.global.oidc.accountEditLink | default "" | quote }}
+{{- if env "OPENCLOUD_OIDC_CLIENT_SECRET" }}
+  clientSecret: {{ env "OPENCLOUD_OIDC_CLIENT_SECRET" | quote }}
+{{- end }}
+
+logLevel: {{ .Values.global.logLevel | default "info" | quote }}
+
+{{- if env "OPENCLOUD_JWT_SECRET" }}
+jwtSecret: {{ env "OPENCLOUD_JWT_SECRET" }}
+{{- end }}
+{{- if env "OPENCLOUD_TRANSFER_SECRET" }}
+transferSecret: {{ env "OPENCLOUD_TRANSFER_SECRET" }}
+{{- end }}
+{{- if env "OPENCLOUD_MACHINE_AUTH_API_KEY" }}
+machineAuthApiKey: {{ env "OPENCLOUD_MACHINE_AUTH_API_KEY" }}
+{{- end }}
+{{- if env "OPENCLOUD_SYSTEM_USER_API_KEY" }}
+systemUserApiKey: {{ env "OPENCLOUD_SYSTEM_USER_API_KEY" }}
+{{- end }}
+{{- if env "OPENCLOUD_URL_SIGNING_SECRET" }}
+urlSigningSecret: {{ env "OPENCLOUD_URL_SIGNING_SECRET" }}
+{{- end }}
+
+resources:
+  {{- toYaml (.Values.global.resources.opencloud | default dict) | nindent 2 }}
+
+{{- if $root.Values | dig "customization" "opencloud" (list) }}
+# Additional merge layers (e.g. per-cluster value files added to the helmfile
+# invocation): helmfile -e default -f helmfile.yaml -v customization/opencloud/0=...
+{{- range $root.Values | dig "customization" "opencloud" (list) }}
+{{ . }}
+{{- end }}
+{{- end }}
