@@ -48,8 +48,10 @@ services:
       OC_SYSTEM_USER_API_KEY: ${OPENCLOUD_SYSTEM_USER_API_KEY:?set OPENCLOUD_SYSTEM_USER_API_KEY in .env (make compose-setup)}
       OC_URL_SIGNING_SECRET: ${OPENCLOUD_URL_SIGNING_SECRET:?set OPENCLOUD_URL_SIGNING_SECRET in .env (make compose-setup)}
     volumes:
-      # Persistent OpenCloud data (all services, users, files).
-      - opencloud-data:/var/lib/opencloud
+      # Persistent OpenCloud data (all services, users, files). Bind mount so
+      # the host controls ownership for the non-root container user (uid 1000:
+      # `make compose-setup` creates + chowns this dir).
+      - ./data:/var/lib/opencloud
       # Config discovery (OC_CONFIG_DIR=/etc/opencloud in the image).
       - ./config:/etc/opencloud:ro
     healthcheck:
@@ -58,6 +60,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
-
-volumes:
-  opencloud-data:

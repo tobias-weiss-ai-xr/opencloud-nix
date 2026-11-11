@@ -36,6 +36,12 @@ compose-setup: ## Create .env from .env.example and fill in random secrets
 			echo "  generated $$v"; \
 		fi; \
 	done
+	@mkdir -p data
+	@if [ -n "$$(id -u 2>/dev/null)" ] && [ "$$(id -u)" = "0" ]; then \
+		chown -R 1000:1000 data; \
+	else \
+		sudo chown -R 1000:1000 data 2>/dev/null || echo "  NOTE: chown data/ to uid 1000:1000 before running as the non-root OpenCloud user (or sudo make compose-setup)"; \
+	fi
 	@echo "==> .env ready. Start with: make compose-up"
 
 compose-up: compose-setup ## Start OpenCloud via docker compose

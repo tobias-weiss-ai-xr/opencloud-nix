@@ -104,14 +104,16 @@
               "opencloud:x:${toString runtimeUser}:\n")
           ];
 
-          # Create + correctly own the data dir inside the (fake-root) build
-          # environment. This is what makes plain `docker run` and Docker
-          # Compose named-volume copy-up work for the non-root user without
-          # requiring an fsGroup-style fix at runtime.
-          fakeRootCommands = ''
-            mkdir -p /var/lib/opencloud
-            chown -R ${toString runtimeUser}:${toString runtimeUser} /var/lib/opencloud
-          '';
+          # The data dir is NOT created here (no-op): dockerTools'
+          # fakeRootCommands relies on fakeroot/user-ns emulation that is
+          # unavailable in containerized and in-cluster Nix build sandboxes
+          # ("mkdir /var/lib: Permission denied"). Ownership is instead
+          # provided at runtime:
+          #   * docker compose: ./data bind mount, created + chowned by
+          #     `make compose-setup` (host side, uid 1000)
+          #   * kubernetes: pod securityContext fsGroup=1000 makes the
+          #     kubelet create + chown the PVC/emptyDir mount
+          fakeRootCommands = "true";
 
           config = {
             # Exec via absolute store paths: the dockerTools /bin symlink farm
