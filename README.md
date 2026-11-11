@@ -43,12 +43,22 @@ make image-load              # -> image opencloud:9.1.0
 make compose-setup
 
 # 3. Start
-make compose-up              # -> http://localhost:9200 (demo users enabled)
+make compose-up              # -> http://localhost:9200
 ```
 
-Log in with the built-in admin (`OPENCLOUD_ADMIN_USER_ID`, password set at
-`opencloud init` — with `IDM_CREATE_DEMO_USERS=true` the well-known demo users
-`admin`/`admin` and `einstein`/`relativity` are available).
+Log in with the built-in admin user (internal IDM): **`admin` / `admin`**
+(password = `idmAdminPassword` / `OPENCLOUD_ADMIN_PASSWORD`). Basic auth
+(`PROXY_ENABLE_BASIC_AUTH=true`) works over plain HTTP, so localhost demos
+don't need TLS. Note: OpenCloud 9.x does **not** auto-provision the classic
+demo users (`einstein`/`relativity`, …) — `IDM_CREATE_DEMO_USERS` has no
+effect on a plain `opencloud server` start. Create extra users via the web
+UI or the Graph API once admin is logged in.
+
+> `OPENCLOUD_URL` must be an `https://` URL — OpenCloud's internal OIDC
+> issuer (idp) refuses `http://` values and the process exits
+> ("invalid iss value"). The proxy still listens on plain HTTP, so
+> `http://localhost:9200` keeps working for /status.php, the web UI and
+> basic-auth logins; only browser OIDC flows expect the https URL.
 
 ## Quick start — Helmfile (Kubernetes)
 
@@ -88,9 +98,18 @@ header), `nix flake lock --update-input nixpkgs`.
 
 ## Configuration model
 
-Secret-bearing values in `opencloud.yaml` are stubs (`override-via-env`); the
-launcher (compose env or the chart's Deployment) overrides them via `OC_*`
-environment variables. This keeps one config shape across all three paths.
+Secret-bearing values in `opencloud.yaml` come in two kinds:
+
+- the **five token/machine secrets** (`jwt_secret`, `machine_auth_api_key`,
+  `system_user_api_key`, `transfer_secret`, `url_signing_secret`) are stubs
+  (`override-via-env`) — the launcher (compose env or the chart's Deployment)
+  overrides them via `OC_*` environment variables;
+- everything else is the **canonical insecure-demo config** that
+  `opencloud init --insecure yes` generates (internal IDM bind passwords,
+  service-account secret, WOPI secret, UUIDs). This is intentional so the demo
+  works out of the box — regenerate your own config for any real deployment.
+
+This keeps one config shape across all three paths.
 
 - **compose:** `config/opencloud.yaml` → `./config` mount; secrets in `.env`
 - **helmfile:** `helmfile/charts/opencloud/templates/configmap.yaml` generates

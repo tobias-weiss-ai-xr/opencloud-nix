@@ -9,6 +9,11 @@ metadata:
   labels:
     {{- include "opencloud.labels" . | nindent 4 }}
 data:
+  # Canonical OpenCloud 9.x development config — mirrors what
+  # `opencloud init --insecure yes` generates (see config/opencloud.yaml in
+  # this repository). The five token/machine secrets are injected via
+  # environment (Secret "…-secrets"); system_user_id/admin_user_id are kept
+  # stable per release so the internal IDM provisions matching identities.
   opencloud.yaml: |
     token_manager:
       jwt_secret: "override-via-env"
@@ -17,6 +22,7 @@ data:
       transfer_secret: "override-via-env"
       url_signing_secret: "override-via-env"
       system_user_id: {{ .Values.systemUserId | quote }}
+      admin_user_id: {{ .Values.adminUserId | quote }}
     graph:
       application:
         id: {{ .Values.graphApplicationId | quote }}
@@ -43,25 +49,52 @@ data:
             member: {{ .Values.graph.ldap.group_schema.member | quote }}
           write_disabled: {{ .Values.graph.ldap.write_disabled }}
 {{- else }}
-          bind_password: "disabled"
-          write_disabled: true
+          # internal IDM — same generated password as idm.service_user_passwords
+          bind_password: "JrGpZLYg%ZYunrg!..mNQuR%o3pelYx3"
+          write_disabled: false
 {{- end }}
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
+    idp:
+      ldap:
+        bind_password: "0D+MjP6kl&Che&!r7OjO4zif2t.TdMyT"
+    idm:
+      service_user_passwords:
+        admin_password: {{ .Values.idmAdminPassword | default "admin" | quote }}
+        idm_password: "JrGpZLYg%ZYunrg!..mNQuR%o3pelYx3"
+        reva_password: "^SSawXD9IMbYC-q9cs*%wIuX9QmVrR^r"
+        idp_password: "0D+MjP6kl&Che&!r7OjO4zif2t.TdMyT"
+    collaboration:
+      wopi:
+        secret: "1Ok6d%9JAy2.Apv^01Y!EpR%+y03F3uV"
+      app:
+        insecure: true
     proxy:
       oidc:
         insecure: true
       insecure_backends: true
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
+    frontend:
+      app_handler:
+        insecure: true
+      archiver:
+        insecure: true
+      service_account:
+        service_account_id: {{ .Values.serviceAccountId | quote }}
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
+      ocdav:
+        insecure: true
+    auth_basic:
+      auth_providers:
+        ldap:
+          bind_password: "^SSawXD9IMbYC-q9cs*%wIuX9QmVrR^r"
     auth_bearer:
       auth_providers:
-{{- if .Values.oidc.enabled }}
         oidc:
           insecure: true
-{{- end }}
     users:
       drivers:
         ldap:
@@ -78,8 +111,8 @@ data:
             name: {{ .Values.graph.ldap.user_schema.name | quote }}
           write_disabled: {{ .Values.graph.ldap.write_disabled }}
 {{- else }}
-          bind_password: "disabled"
-          write_disabled: true
+          bind_password: "^SSawXD9IMbYC-q9cs*%wIuX9QmVrR^r"
+          write_disabled: false
 {{- end }}
     groups:
       drivers:
@@ -96,26 +129,23 @@ data:
             member: {{ .Values.graph.ldap.group_schema.member | quote }}
           write_disabled: {{ .Values.graph.ldap.write_disabled }}
 {{- else }}
-          bind_password: "disabled"
-          write_disabled: true
+          bind_password: "^SSawXD9IMbYC-q9cs*%wIuX9QmVrR^r"
+          write_disabled: false
 {{- end }}
-    ocdav:
-      insecure: true
+    auth_guest:
+      service_account:
+        service_account_id: {{ .Values.serviceAccountId | quote }}
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
     ocm:
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
-    thumbnails:
-      thumbnail:
-        transfer_secret: "override-via-env"
-        webdav_allow_insecure: true
-        cs3_allow_insecure: true
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
     search:
       events:
         tls_insecure: true
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
     audit:
       events:
         tls_insecure: true
@@ -125,20 +155,23 @@ data:
     sharing:
       events:
         tls_insecure: true
+      service_account:
+        service_account_id: {{ .Values.serviceAccountId | quote }}
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
     storage_users:
       events:
         tls_insecure: true
       mount_id: {{ .Values.storageUsersMountId | quote }}
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
     notifications:
       notifications:
         events:
           tls_insecure: true
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
     nats:
       nats:
         tls_skip_verify_client_cert: true
@@ -148,19 +181,21 @@ data:
     userlog:
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
     auth_service:
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
     clientlog:
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
     activitylog:
       service_account:
         service_account_id: {{ .Values.serviceAccountId | quote }}
-        service_account_secret: "override-via-env"
+        service_account_secret: "&70yt@bkIo6xY5rtab0lR%mV%zMX*UWb"
+    webfinger:
+      insecure: true
 {{- with .Values.config.extra }}
 {{ toYaml . | nindent 4 }}
 {{- end }}

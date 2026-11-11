@@ -97,13 +97,17 @@ jwtSecret: ""
 transferSecret: ""
 machineAuthApiKey: ""
 systemUserApiKey: ""
-systemUserId: "admin"
+# Canonical instance identities (mirror of `opencloud init --insecure yes`);
+# keep stable within one deployment, change between separate instances.
+systemUserId: "980c181d-9c95-47f1-9669-564022535b5b"
+adminUserId: "6b8dd20c-dbbb-46a8-8e00-aed13c490082"
+idmAdminPassword: "admin"   # initial admin login when using the internal IDM
 urlSigningSecret: ""
 
 # Instance identifiers inside opencloud.yaml — change per deployment.
-serviceAccountId: "dc3eee3e-7831-45e4-b986-8e470f37ac23"
-storageUsersMountId: "ca65db73-407e-43ca-b393-9b141f43aa8f"
-graphApplicationId: "fdfc30d2-5cc5-40a4-8beb-ce6801bbca41"
+serviceAccountId: "99d1bcaa-b735-4c12-a620-6ed8148bc969"
+storageUsersMountId: "9112edb4-06bb-4573-a057-4aef5479ba1d"
+graphApplicationId: "c51bdf21-196c-4b35-969e-e05a21912eb7"
 
 graph:
   ldap:

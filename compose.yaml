@@ -28,7 +28,11 @@ services:
     environment:
       # Demo-friendly defaults; make sure to disable these in real deployments.
       OC_INSECURE: "true"
-      OC_URL: ${OPENCLOUD_URL:-http://localhost:9200}
+      # NOTE: must be https:// — OpenCloud's internal OIDC issuer (idp) refuses
+      # an http:// value and the process exits ("invalid iss value").
+      # The proxy still listens on plain HTTP below, so http://localhost:9200
+      # keeps working for /status.php and basic-auth logins.
+      OC_URL: ${OPENCLOUD_URL:-https://localhost:9200}
       OC_LOG_LEVEL: ${OPENCLOUD_LOG_LEVEL:-info}
       PROXY_TLS: "false"
       PROXY_HTTP_ADDR: "0.0.0.0:9200"
