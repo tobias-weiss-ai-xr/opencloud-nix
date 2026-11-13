@@ -56,6 +56,13 @@
         };
         patches = [ ./compress-1.20.2.patch ];
 
+        # Prebuilt web frontend dist, served embedded by the web service
+        # (see services/web/Makefile download-assets, WEB_ASSETS_VERSION).
+        webAssets = pkgs.fetchurl {
+          url = "https://github.com/opencloud-eu/web/releases/download/v8.2.2/web.tar.gz";
+          hash = "sha256-7ac07yYLawndYLG9nynaS2gnRtjRW29B96GG1trgX5M=";
+        };
+
         opencloud = pkgs.buildGoModule {
           pname = "opencloud";
           inherit version src patches;
@@ -77,6 +84,12 @@
           #   cp assets/identifier/static/{favicon,icon-lilac}.svg from src/images
           postPatch = ''
             cp -r ${./idp-assets}/. services/idp/assets/
+            # The web frontend (services/web/assets/core) is likewise generated
+            # upstream: services/web/Makefile `download-assets` fetches the
+            # prebuilt web dist release (WEB_ASSETS_VERSION = v8.2.2) and
+            # extracts it into assets/core/. Without it the web service embeds
+            # only .keep and every UI route 404s. fetchurl pins the tarball.
+            tar xzf ${webAssets} -C services/web/assets/core/
           '';
           # static binary like the upstream release; go-crypt (libregraph/idm)
           # needs the disable_crypt tag when CGO is off
