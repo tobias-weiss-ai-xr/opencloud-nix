@@ -1,0 +1,40 @@
+{
+  "files": {
+    "main.css": "./static/css/main.29ddde63.css",
+    "main.js": "./static/js/main.3e65eda7.js",
+    "runtime-main.js": "./static/js/runtime-main.d712e740.js",
+    "all-i18n-data.js": "./static/js/all-i18n-data.3d2e355c.chunk.js",
+    "identifier-main.js": "./static/js/identifier-main.a738e957.chunk.js",
+    "containers-login.js": "./static/js/containers-login.ce4559c7.chunk.js",
+    "containers-welcome.js": "./static/js/containers-welcome.719c491a.chunk.js",
+    "containers-goodbye.js": "./static/js/containers-goodbye.5aa4d182.chunk.js",
+    "static/js/388.2d1d8754.chunk.js": "./static/js/388.2d1d8754.chunk.js",
+    "static/js/937.49265e22.js": "./static/js/937.49265e22.js",
+    "static/js/580.ee0bb977.chunk.js": "./static/js/580.ee0bb977.chunk.js",
+    "static/js/626.d243b49d.chunk.js": "./static/js/626.d243b49d.chunk.js",
+    "workbox-146ffa86.js.map": "./workbox-146ffa86.js.map",
+    "static/media/OpenCloud750-Bold.woff2": "./static/media/OpenCloud750-Bold.ece9a960.woff2",
+    "static/media/OpenCloud500-Regular.woff2": "./static/media/OpenCloud500-Regular.d3739cdf.woff2",
+    "workbox-146ffa86.js": "./workbox-146ffa86.js",
+    "service-worker.js.map": "./service-worker.js.map",
+    "service-worker.js": "./service-worker.js",
+    "index.html": "./index.html",
+    "main.29ddde63.css.map": "./static/css/main.29ddde63.css.map",
+    "main.3e65eda7.js.map": "./static/js/main.3e65eda7.js.map",
+    "runtime-main.d712e740.js.map": "./static/js/runtime-main.d712e740.js.map",
+    "identifier-main.a738e957.chunk.js.map": "./static/js/identifier-main.a738e957.chunk.js.map",
+    "containers-login.ce4559c7.chunk.js.map": "./static/js/containers-login.ce4559c7.chunk.js.map",
+    "containers-welcome.719c491a.chunk.js.map": "./static/js/containers-welcome.719c491a.chunk.js.map",
+    "containers-goodbye.5aa4d182.chunk.js.map": "./static/js/containers-goodbye.5aa4d182.chunk.js.map",
+    "388.2d1d8754.chunk.js.map": "./static/js/388.2d1d8754.chunk.js.map",
+    "937.49265e22.js.map": "./static/js/937.49265e22.js.map",
+    "580.ee0bb977.chunk.js.map": "./static/js/580.ee0bb977.chunk.js.map",
+    "626.d243b49d.chunk.js.map": "./static/js/626.d243b49d.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.d712e740.js",
+    "static/js/937.49265e22.js",
+    "static/css/main.29ddde63.css",
+    "static/js/main.3e65eda7.js"
+  ]
+}
