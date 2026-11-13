@@ -5,18 +5,21 @@
 # binary. Reproducible: pinned SRI hash from the release .sha256 sidecar,
 # locked nixpkgs (see flake.lock).
 #
-# OpenCloud ships as a single static Go binary per release; we vendor the
-# upstream linux-amd64 binary, pin it by hash, and wrap it in a minimal
-# layered image (non-root user, tini init, CA/timezone data).
+# OpenCloud is built FROM SOURCE at the pinned upstream tag (buildGoModule,
+# static, disable_crypt tag) and wrapped in a minimal layered image (non-root
+# user, tini init, CA/timezone data). We build from source instead of vendoring
+# the release binary so we can carry go.mod patches — currently
+# compress-1.20.2.patch (GO-2026-6865, fixed upstream in v1.20.2 but not yet
+# in the v9.1.0 release binary).
 #
 # Version bump recipe (e.g. 9.1.0 -> 9.2.0):
-#   1. set `version` below
-#   2. fetch the new sha256:
-#        curl -L https://github.com/opencloud-eu/opencloud/releases/download/v<ver>/opencloud-<ver>-linux-amd64.sha256
+#   1. set `version` below, drop/adjust patches that upstream has merged
+#   2. set both hashes to pkgs.lib.fakeHash, run
+#        nix build .#opencloud --no-link
+#      and paste the 'got:' sha256 values from the error output
 #   3. update the lock:   nix flake lock --update-input nixpkgs
-#   4. rebuild + push:
-#        nix build .#opencloud --print-build-logs
-#        skopeo copy docker-archive:result docker://<registry>/opencloud:<ver>
+#   4. rebuild + verify:  nix build .#opencloud && go version -m result-*/bin/opencloud
+#   5. push via .github/workflows/build-image.yml (ghcr.io/tobias-weiss-ai-xr/opencloud)
 {
   description = "OpenCloud server container image, Nix-built from the pinned upstream release binary";
 
@@ -33,33 +36,41 @@
         # --- image configuration (tune for your deployment) -----------------
         # Upstream release version (rolling release train).
         version = "9.1.0";
-        # SRI sha256 of `opencloud-${version}-linux-amd64`, from the release
-        # .sha256 sidecar on github.com/opencloud-eu/opencloud.
-        sha256 = "183d95c3a77ccb520dabaa106e08d1037afcaa8af6403c22eb6ac9a565de777e";
         # Registry the image is pushed to (used by the dev shell hint only).
         registry = "ghcr.io/tobias-weiss-ai-xr";
         timezone = "UTC";
         runtimeUser = 1000;   # must match securityContext.runAsUser in helm/k8s
         maintainer = "opencloud-nix maintainers <dev@example.com>";
-        source = "https://github.com/example/opencloud-nix";
+        source = "https://github.com/tobias-weiss-ai-xr/opencloud-nix";
 
-        # Upstream linux binary (pinned hash from release .sha256)
-        src = pkgs.fetchurl {
-          url = "https://github.com/opencloud-eu/opencloud/releases/download/v${version}/opencloud-${version}-linux-amd64";
-          sha256 = sha256;
+        # Upstream source at the release tag. We build from source (instead of
+        # vendoring the release binary) because v9.1.0 still ships
+        # klauspost/compress v1.20.1 — vulnerable to GO-2026-6865 (panic on
+        # two-block frames), fixed upstream in v1.20.2. Upstream main has not
+        # bumped yet, so we carry the go.mod/go.sum patch here.
+        src = pkgs.fetchFromGitHub {
+          owner = "opencloud-eu";
+          repo = "opencloud";
+          rev = "v${version}";
+          hash = "sha256-AZr4JB6PmCx1jqYzzETU/QgTMlDcmu31KQEhDzZbW8s=";
         };
+        patches = [ ./compress-1.20.2.patch ];
 
-        opencloud = pkgs.stdenv.mkDerivation {
+        opencloud = pkgs.buildGoModule {
           pname = "opencloud";
-          inherit version src;
-          dontUnpack = true;
-          dontConfigure = true;
-          dontBuild = true;
-          installPhase = ''
-            runHook preInstall
-            install -Dm755 $src $out/bin/opencloud
-            runHook postInstall
+          inherit version src patches;
+          # upstream tarball ships vendor/; drop it so the modules are
+          # vendored from the PATCHED go.mod (compress v1.20.2)
+          deleteVendor = true;
+          vendorHash = "sha256-2A/xrJHq7LK21kyHgoDzjtF45Kd4VOf9Pl0nixBULuc=";
+          subPackages = [ "opencloud/cmd/opencloud" ];
+          # static binary like the upstream release; go-crypt (libregraph/idm)
+          # needs the disable_crypt tag when CGO is off
+          preBuild = ''
+            export CGO_ENABLED=0
           '';
+          tags = [ "disable_crypt" ];
+          ldflags = [ "-s" "-w" ];
           meta = with pkgs.lib; {
             description = "OpenCloud – scalable file sync & share (ownCloud Infinite Scale successor)";
             homepage = "https://opencloud.eu";
